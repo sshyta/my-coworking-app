@@ -1,7 +1,7 @@
 // src/router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/views/HomeView.vue'
-import SpacesView from '@/views/SpacesView.vue'
+import HomeView from '../views/HomeView.vue'
+import SpacesView from '../views/SpacesView.vue'
 
 const routes = [
   {

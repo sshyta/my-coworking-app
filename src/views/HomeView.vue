@@ -35,11 +35,14 @@
 </template>
 
 <script setup lang="ts">
-import { NButton, NH2, NIcon } from 'naive-ui' 
+import { NIcon } from 'naive-ui'
 import { ChevronDown } from '@vicons/ionicons5'
-import SpaceItem from '@/components/SpaceItem.vue'
-import BenefitItem from '@/components/BenefitItem.vue'
+import SpaceItem from '../components/SpaceItem.vue'
+import BenefitItem from '../components/BenefitItem.vue'
 import gsap from 'gsap'
+import silentPod from '@/assets/spaces/silent-pod.jpg'
+import privateOffice from '@/assets/spaces/privateOffice.jpg'
+
 import { ref, onMounted } from 'vue'
 
 const heroSection = ref<HTMLElement | null>(null)
@@ -51,14 +54,14 @@ const featuredSpaces = ref([
     id: 1,
     name: "Silent Pod",
     price: "₽1,200/день",
-    image: "/spaces/silent-pod.jpg",
+    image: silentPod,
     features: ["Тихая зона", "MacBook Pro M3", "Кофе включён"]
   },
   {
     id: 2,
     name: "Creative Loft",
     price: "₽1,800/день",
-    image: "/spaces/creative-loft.jpg",
+    image: privateOffice,
     features: ["4K монитор", "Фотостудия", "Терраса"]
   }
 ])
