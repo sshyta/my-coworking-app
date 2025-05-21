@@ -126,37 +126,107 @@ _не требует собственных БД — проксирование 
 
 ## Пример взаимодействия сервисов (MVP)
 
+## Расширенный пример взаимодействия всех сервисов (MVP)
+
 ```mermaid
 sequenceDiagram
     participant U as Пользователь
     participant G as API-Gateway/BFF
     participant A as auth-service
+    participant H as hr-service
     participant W as workspace-service
     participant B as booking-service
     participant P as payment-service
+    participant GA as guest-access-service
+    participant PK as parking-service
+    participant O as order-service
+    participant S as support-service
+    participant SC as security-service
+    participant N as notification-service
+    participant AN as analytics-service
+    participant AC as accounting-service
 
-    U->>A: POST /auth/login (email, pass)
-    A-->>U: 200 { accessJWT, refreshToken }
+    %% Аутентификация и получение профиля
+    U->>A: POST /auth/login (email, password)
+    A-->>U: { accessJWT, refreshToken }
+    U->>G: GET /profile (Bearer accessJWT)
+    G->>H: GET /employees/{userId}
+    H-->>G: { role, shifts }
+    G-->>U: { userProfile }
 
-    U->>G: GET /v1/workspaces (Bearer JWT)
+    %% Получение каталога ресурсов
+    U->>G: GET /workspaces
     G->>W: GET /workspaces
-    W-->>G: [ {id,name,…} ]
-    G-->>U: […]
-    
-    U->>G: GET /v1/workspaces/{ws}/seats?status=free
-    G->>W: GET /seats?status=free
-    W-->>G: [ {id,label,…} ]
-    G-->>U: […]
-    
-    U->>G: POST /v1/reservations {resourceIds, start, end}
+    W-->>G: [workspaces]
+    G-->>U: [workspaces]
+
+    U->>G: GET /resources?status=free&type=desk
+    G->>W: GET /seats?status=free&type=desk
+    W-->>G: [seats]
+    G-->>U: [seats]
+
+    %% Бронирование
+    U->>G: POST /reservations { resourceIds, start, end }
     G->>B: POST /reservations
-    B-->>G: 201 { reservationId }
-    B->>Kafka: reservation.created
-    Kafka->>W: reservation.created
+    B-->>G: { reservationId }
+    B->>AN: publish reservation.created
+    B-->>G: 201 Created
+
+    %% Обновление статуса ресурса
+    AN-->>W: reservation.created
     W->>W: UPDATE seats SET status='occupied'
-    
-    G->>P: POST /v1/payments {reservationId, method}
-    P-->>G: 202 { paymentId, status='processing' }
-    P->>Kafka: payment.succeeded
-    Kafka->>B: payment.succeeded
+    W->>AN: publish seat.status_changed
+
+    %% Платёж
+    U->>G: POST /payments { reservationId, method }
+    G->>P: POST /payments
+    P-->>G: { paymentId, status: processing }
+    P->>AC: create ledger_entry
+    P->>N: notify payment.processing
+    P->>AN: publish payment.created
+
+    Note over P: эквайер callback
+    P->>P: UPDATE payments SET status='succeeded'
+    P->>N: notify payment.succeeded
+    P->>AN: publish payment.succeeded
+    AN-->>B: payment.succeeded
     B->>B: UPDATE reservations SET status='CONFIRMED'
+
+    %% Гостевой доступ
+    U->>G: POST /guest-passes { guestInfo, workspaceId, period }
+    G->>GA: POST /guest-passes
+    GA-->>G: { passId, qrCode }
+    GA->>N: notify guest.pass_issued
+    GA->>AN: publish guest_pass.created
+
+    %% Парковка
+    U->>G: POST /parking/orders { slotId, from, to }
+    G->>PK: POST /parking/orders
+    PK-->>G: { parkingOrderId }
+    PK->>N: notify parking.reserved
+    PK->>AN: publish parking.order.created
+
+    %% Заказы доп. услуг
+    U->>G: POST /orders { items }
+    G->>O: POST /orders
+    O-->>G: { orderId }
+    O->>N: notify order.created
+    O->>AN: publish order.created
+
+    %% Техподдержка
+    U->>G: POST /tickets { category, description }
+    G->>S: POST /tickets
+    S-->>G: { ticketId }
+    S->>N: notify ticket.created
+    S->>AN: publish ticket.created
+
+    %% СКУД
+    U->>G: POST /access/verify { passCode }
+    G->>SC: POST /access/verify
+    SC-->>G: { granted/denied }
+    SC->>AN: publish access.event
+
+    Note over AN,N:  
+      • Analytics-svc собирает все события  
+      • Notification-svc рассылает уведомления  
+
