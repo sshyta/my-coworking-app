@@ -128,6 +128,8 @@ _не требует собственных БД — проксирование 
 
 ## Расширенный пример взаимодействия всех сервисов (MVP)
 
+## Расширенный пример взаимодействия всех сервисов (MVP)
+
 ```mermaid
 sequenceDiagram
     participant U as Пользователь
@@ -146,7 +148,7 @@ sequenceDiagram
     participant AN as analytics-service
     participant AC as accounting-service
 
-    %% Аутентификация и получение профиля
+    %% Аутентификация
     U->>A: POST /auth/login (email, password)
     A-->>U: { accessJWT, refreshToken }
     U->>G: GET /profile (Bearer accessJWT)
@@ -154,7 +156,7 @@ sequenceDiagram
     H-->>G: { role, shifts }
     G-->>U: { userProfile }
 
-    %% Получение каталога ресурсов
+    %% Каталог ресурсов
     U->>G: GET /workspaces
     G->>W: GET /workspaces
     W-->>G: [workspaces]
@@ -169,26 +171,25 @@ sequenceDiagram
     U->>G: POST /reservations { resourceIds, start, end }
     G->>B: POST /reservations
     B-->>G: { reservationId }
-    B->>AN: publish reservation.created
+    B->>AN: reservation.created
     B-->>G: 201 Created
 
-    %% Обновление статуса ресурса
     AN-->>W: reservation.created
     W->>W: UPDATE seats SET status='occupied'
-    W->>AN: publish seat.status_changed
+    W->>AN: seat.status_changed
 
     %% Платёж
     U->>G: POST /payments { reservationId, method }
     G->>P: POST /payments
     P-->>G: { paymentId, status: processing }
     P->>AC: create ledger_entry
-    P->>N: notify payment.processing
-    P->>AN: publish payment.created
+    P->>N: payment.processing
+    P->>AN: payment.created
 
-    Note over P: эквайер callback
-    P->>P: UPDATE payments SET status='succeeded'
-    P->>N: notify payment.succeeded
-    P->>AN: publish payment.succeeded
+    P->>P: acquirer callback
+    P-->>P: UPDATE payments SET status='succeeded'
+    P->>N: payment.succeeded
+    P->>AN: payment.succeeded
     AN-->>B: payment.succeeded
     B->>B: UPDATE reservations SET status='CONFIRMED'
 
@@ -196,37 +197,32 @@ sequenceDiagram
     U->>G: POST /guest-passes { guestInfo, workspaceId, period }
     G->>GA: POST /guest-passes
     GA-->>G: { passId, qrCode }
-    GA->>N: notify guest.pass_issued
-    GA->>AN: publish guest_pass.created
+    GA->>N: guest.pass_issued
+    GA->>AN: guest_pass.created
 
     %% Парковка
     U->>G: POST /parking/orders { slotId, from, to }
     G->>PK: POST /parking/orders
     PK-->>G: { parkingOrderId }
-    PK->>N: notify parking.reserved
-    PK->>AN: publish parking.order.created
+    PK->>N: parking.reserved
+    PK->>AN: parking.order.created
 
-    %% Заказы доп. услуг
+    %% Доп. услуги
     U->>G: POST /orders { items }
     G->>O: POST /orders
     O-->>G: { orderId }
-    O->>N: notify order.created
-    O->>AN: publish order.created
+    O->>N: order.created
+    O->>AN: order.created
 
-    %% Техподдержка
+    %% Служба поддержки
     U->>G: POST /tickets { category, description }
     G->>S: POST /tickets
     S-->>G: { ticketId }
-    S->>N: notify ticket.created
-    S->>AN: publish ticket.created
+    S->>N: ticket.created
+    S->>AN: ticket.created
 
     %% СКУД
     U->>G: POST /access/verify { passCode }
     G->>SC: POST /access/verify
     SC-->>G: { granted/denied }
-    SC->>AN: publish access.event
-
-    Note over AN,N:  
-      • Analytics-svc собирает все события  
-      • Notification-svc рассылает уведомления  
-
+    SC->>AN: access.event
