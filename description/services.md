@@ -1,84 +1,102 @@
-## auth-service
+# API Documentation
+
+Ниже описаны все 13 микросервисов системы управления сетью коворкингов. В каждом разделе:
+
+1. Краткое описание возможностей сервиса.
+2. Спецификация API (протокол, методы, пути, тела запросов/ответов).
+3. Все идентификаторы (`id`, `userId`, `workspaceId` и т.д.) имеют тип `int`.
+
+---
+
+## 1. auth-service
+
+**Описание:** Отвечает за регистрацию и аутентификацию пользователей, выдачу и обновление JWT-токенов.
 
 **Protocol**: HTTPS/REST  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path            | Description                     | Request Body                                              | Response Body                                                                      | Auth         |
-|--------|-----------------|---------------------------------|-----------------------------------------------------------|------------------------------------------------------------------------------------|--------------|
-| POST   | `/auth/login`   | Authenticate user, issue tokens | `{ "email": string, "password": string }`                 | `{ "accessToken": string, "refreshToken": string, "expiresIn": number }`           | Public       |
-| POST   | `/auth/refresh` | Refresh access token            | `{ "refreshToken": string }`                              | `{ "accessToken": string, "expiresIn": number }`                                   | Public       |
-| POST   | `/auth/logout`  | Revoke refresh token            | `{ "refreshToken": string }`                              | *204 No Content*                                                                   | Bearer       |
-| GET    | `/users`        | List users                      | —                                                         | `[ { "id": UUID, "email": string, "role": string, "isActive": boolean, ... }, … ]` | Bearer/Admin |
-| POST   | `/users`        | Create new user                 | `{ "email": string, "password": string, "role": string }` | `{ "id": UUID, "email": string, "role": string, ... }`                             | Bearer/Admin |
-| GET    | `/users/{id}`   | Get user by ID                  | —                                                         | `{ "id": UUID, "email": string, "role": string, ... }`                             | Bearer       |
-| PUT    | `/users/{id}`   | Update user                     | Partial user object                                       | `{ "id": UUID, ... }`                                                              | Bearer/Admin |
-| DELETE | `/users/{id}`   | Soft-delete user                | —                                                         | *204 No Content*                                                                   | Bearer/Admin |
+| Method | Path            | Описание                                  | Request Body                                                  | Response Body                                                                   | Auth         |
+|--------|-----------------|-------------------------------------------|---------------------------------------------------------------|---------------------------------------------------------------------------------|--------------|
+| POST   | `/auth/login`   | Аутентификация, выдача токенов            | `{ "email": string, "password": string }`                     | `{ "accessToken": string, "refreshToken": string, "expiresIn": number }`        | Public       |
+| POST   | `/auth/refresh` | Обновление access-токена                  | `{ "refreshToken": string }`                                  | `{ "accessToken": string, "expiresIn": number }`                                | Public       |
+| POST   | `/auth/logout`  | Отзыв refresh-токена                      | `{ "refreshToken": string }`                                  | *204 No Content*                                                                | Bearer       |
+| GET    | `/users`        | Список пользователей                      | —                                                             | `[ { "id": int, "email": string, "role": string, "isActive": boolean, … }, … ]` | Bearer/Admin |
+| POST   | `/users`        | Создать пользователя                      | `{ "email": string, "password": string, "role": string }`     | `{ "id": int, "email": string, "role": string, … }`                             | Bearer/Admin |
+| GET    | `/users/{id}`   | Получить пользователя по ID               | —                                                             | `{ "id": int, "email": string, "role": string, … }`                             | Bearer       |
+| PUT    | `/users/{id}`   | Обновить данные пользователя              | `{ "email"?: string, "role"?: string, "isActive"?: boolean }` | `{ "id": int, "email": string, "role": string, … }`                             | Bearer/Admin |
+| DELETE | `/users/{id}`   | Деактивировать (soft-delete) пользователя | —                                                             | *204 No Content*                                                                | Bearer/Admin |
 
 ---
 
-## workspace-service
+## 2. workspace-service
+
+**Описание:** Управление коворкинг-пространствами и их ресурсами (рабочие места, комнаты, принтеры и т.д.).
 
 **Protocol**: HTTPS/REST  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path                                  | Description                               | Request Body                                                    | Response Body                                                                   | Auth         |
-|--------|---------------------------------------|-------------------------------------------|-----------------------------------------------------------------|---------------------------------------------------------------------------------|--------------|
-| GET    | `/workspaces`                         | List all workspaces                       | —                                                               | `[ { "id": UUID, "name": string, "address": object, "timeZone": string }, … ]`  | Bearer       |
-| POST   | `/workspaces`                         | Create a workspace                        | `{ "name": string, "address": {...}, "timeZone": string }`      | `{ "id": UUID, ... }`                                                           | Bearer/Admin |
-| GET    | `/workspaces/{workspaceId}`           | Get a workspace by ID                     | —                                                               | `{ "id": UUID, "name": string, ... }`                                           | Bearer       |
-| PUT    | `/workspaces/{workspaceId}`           | Update workspace                          | Partial workspace object                                        | `{ "id": UUID, ... }`                                                           | Bearer/Admin |
-| DELETE | `/workspaces/{workspaceId}`           | Delete workspace                          | —                                                               | *204 No Content*                                                                | Bearer/Admin |
-| GET    | `/workspaces/{workspaceId}/resources` | List resources in a workspace             | —                                                               | `[ { "id": UUID, "label": string, "type": string, "status": string, ... }, … ]` | Bearer       |
-| GET    | `/resources`                          | Search/filter resources across all spaces | Query params: `?type=&status=&workspaceId=`                     | `[ {...}, … ]`                                                                  | Bearer       |
-| POST   | `/resources`                          | Create a resource                         | `{ "workspaceId": UUID, "label": string, "type": string, ... }` | `{ "id": UUID, ... }`                                                           | Bearer/Admin |
-| PUT    | `/resources/{resourceId}`             | Update resource                           | Partial resource object                                         | `{ "id": UUID, ... }`                                                           | Bearer/Admin |
-| DELETE | `/resources/{resourceId}`             | Delete resource                           | —                                                               | *204 No Content*                                                                | Bearer/Admin |
+| Method | Path                         | Описание                               | Request Body                                                  | Response Body                                                                 | Auth         |
+|--------|------------------------------|----------------------------------------|---------------------------------------------------------------|-------------------------------------------------------------------------------|--------------|
+| GET    | `/workspaces`                | Список всех коворкингов                | —                                                             | `[ { "id": int, "name": string, "address": object, "timeZone": string }, … ]` | Bearer       |
+| POST   | `/workspaces`                | Создать коворкинг                      | `{ "name": string, "address": {...}, "timeZone": string }`    | `{ "id": int, "name": string, … }`                                            | Bearer/Admin |
+| GET    | `/workspaces/{id}`           | Получить коворкинг по ID               | —                                                             | `{ "id": int, "name": string, "address": object, "timeZone": string, … }`     | Bearer       |
+| PUT    | `/workspaces/{id}`           | Обновить коворкинг                     | `{ "name"?: string, "address"?: {...}, "timeZone"?: string }` | `{ "id": int, "name": string, … }`                                            | Bearer/Admin |
+| DELETE | `/workspaces/{id}`           | Удалить коворкинг                      | —                                                             | *204 No Content*                                                              | Bearer/Admin |
+| GET    | `/workspaces/{id}/resources` | Список ресурсов внутри коворкинга      | —                                                             | `[ { "id": int, "label": string, "type": string, "status": string, … }, … ]`  | Bearer       |
+| GET    | `/resources`                 | Поиск/фильтрация ресурсов по всей сети | Query params: `?type=&status=&workspaceId=`                   | `[ { "id": int, "workspaceId": int, "label": string, … }, … ]`                | Bearer       |
+| POST   | `/resources`                 | Создать ресурс                         | `{ "workspaceId": int, "label": string, "type": string, … }`  | `{ "id": int, "workspaceId": int, "label": string, … }`                       | Bearer/Admin |
+| PUT    | `/resources/{id}`            | Обновить ресурс                        | `{ "label"?: string, "status"?: string, … }`                  | `{ "id": int, "label": string, … }`                                           | Bearer/Admin |
+| DELETE | `/resources/{id}`            | Удалить ресурс                         | —                                                             | *204 No Content*                                                              | Bearer/Admin |
 
 ---
 
-## booking-service
+## 3. booking-service
+
+**Описание:** Управление бронированиями ресурсов коворкинга.
 
 **Protocol**: HTTPS/REST + Kafka events  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path                 | Description                        | Request Body                                                                                           | Response Body                                                  | Auth   |
-|--------|----------------------|------------------------------------|--------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|--------|
-| GET    | `/reservations`      | List all reservations              | Query params: `?userId=&status=&from=&to=`                                                             | `[ { "id": UUID, "userId": UUID, "status": string, ... }, … ]` | Bearer |
-| POST   | `/reservations`      | Create a reservation               | `{ "userId": UUID, "items": [ { "resourceId": UUID, "start": ISO, "end": ISO } ], "currency": "RUB" }` | `{ "id": UUID, "totalPrice": number, "currency": "RUB", ... }` | Bearer |
-| GET    | `/reservations/{id}` | Get reservation by ID              | —                                                                                                      | `{ "id": UUID, "status": string, "items": [ … ], ... }`        | Bearer |
-| PUT    | `/reservations/{id}` | Update reservation status or dates | `{ "status": string }`                                                                                 | `{ "id": UUID, "status": string, ... }`                        | Bearer |
-| DELETE | `/reservations/{id}` | Cancel reservation                 | —                                                                                                      | *204 No Content*                                               | Bearer |
+| Method | Path                 | Описание                    | Request Body                                                                                          | Response Body                                                | Auth   |
+|--------|----------------------|-----------------------------|-------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|--------|
+| GET    | `/reservations`      | Список бронирований         | Query params: `?userId=&status=&from=&to=`                                                            | `[ { "id": int, "userId": int, "status": string, … }, … ]`   | Bearer |
+| POST   | `/reservations`      | Создать бронирование        | `{ "userId": int, "items": [ { "resourceId": int, "start": ISO, "end": ISO } ], "currency": string }` | `{ "id": int, "totalPrice": number, "currency": string, … }` | Bearer |
+| GET    | `/reservations/{id}` | Получить бронирование по ID | —                                                                                                     | `{ "id": int, "status": string, "items":[…], … }`            | Bearer |
+| PUT    | `/reservations/{id}` | Обновить статус или даты    | `{ "status"?: string, "start"?: ISO, "end"?: ISO }`                                                   | `{ "id": int, "status": string, … }`                         | Bearer |
+| DELETE | `/reservations/{id}` | Отменить бронирование       | —                                                                                                     | *204 No Content*                                             | Bearer |
 
 > **Kafka topics**
-> - `reservation.created` → payload: reservation summary
-> - `reservation.confirmed` → after payment
+> - `reservation.created`
+> - `reservation.confirmed`
 > - `reservation.cancelled`
 
 ---
 
-## payment-service
+## 4. payment-service
+
+**Описание:** Выставление счетов, приём и учёт платежей, интеграция с платёжными провайдерами.
 
 **Protocol**: HTTPS/REST + Kafka events  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path                    | Description                       | Request Body                                                                      | Response Body                                                    | Auth   |
-|--------|-------------------------|-----------------------------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------|--------|
-| GET    | `/invoices`             | List invoices                     | Query params: `?reservationId=&status=&dueDate=`                                  | `[ { "id": UUID, "amount": number, "status": string, ... }, … ]` | Bearer |
-| POST   | `/invoices`             | Create invoice                    | `{ "reservationId": UUID, "amount": number, "currency": string, "dueDate": ISO }` | `{ "id": UUID, "status": "new", ... }`                           | Bearer |
-| GET    | `/invoices/{id}`        | Get invoice by ID                 | —                                                                                 | `{ "id": UUID, "amount": number, ... }`                          | Bearer |
-| PUT    | `/invoices/{id}`        | Update invoice status or due date | `{ "status": string }`                                                            | `{ "id": UUID, "status": string, ... }`                          | Bearer |
-| GET    | `/payment-methods`      | List saved payment methods        | —                                                                                 | `[ { "id": UUID, "type": string, ... }, … ]`                     | Bearer |
-| POST   | `/payment-methods`      | Add a payment method              | `{ "userId": UUID, "type": string, "token": string }`                             | `{ "id": UUID, ... }`                                            | Bearer |
-| DELETE | `/payment-methods/{id}` | Remove payment method             | —                                                                                 | *204 No Content*                                                 | Bearer |
-| POST   | `/payments`             | Execute a payment                 | `{ "invoiceId": UUID, "paymentMethodId": UUID }`                                  | `{ "id": UUID, "status": string, "externalRef": string, ... }`   | Bearer |
+| Method | Path                    | Описание                        | Request Body                                                                     | Response Body                                                 | Auth   |
+|--------|-------------------------|---------------------------------|----------------------------------------------------------------------------------|---------------------------------------------------------------|--------|
+| GET    | `/invoices`             | Список счетов                   | Query params: `?reservationId=&status=&dueDate=`                                 | `[ { "id": int, "amount": number, "status": string, … }, … ]` | Bearer |
+| POST   | `/invoices`             | Создать счёт                    | `{ "reservationId": int, "amount": number, "currency": string, "dueDate": ISO }` | `{ "id": int, "status": "new", … }`                           | Bearer |
+| GET    | `/invoices/{id}`        | Получить счёт по ID             | —                                                                                | `{ "id": int, "amount": number, … }`                          | Bearer |
+| PUT    | `/invoices/{id}`        | Обновить статус или срок оплаты | `{ "status"?: string, "dueDate"?: ISO }`                                         | `{ "id": int, "status": string, … }`                          | Bearer |
+| GET    | `/payment-methods`      | Список способов оплаты          | —                                                                                | `[ { "id": int, "type": string, … }, … ]`                     | Bearer |
+| POST   | `/payment-methods`      | Добавить способ оплаты          | `{ "userId": int, "type": string, "token": string }`                             | `{ "id": int, "type": string, … }`                            | Bearer |
+| DELETE | `/payment-methods/{id}` | Удалить способ оплаты           | —                                                                                | *204 No Content*                                              | Bearer |
+| POST   | `/payments`             | Провести платёж                 | `{ "invoiceId": int, "paymentMethodId": int }`                                   | `{ "id": int, "status": string, "externalRef": string, … }`   | Bearer |
 
 > **Kafka topics**
 > - `invoice.issued`
@@ -87,58 +105,64 @@
 
 ---
 
-## guest-access-service
+## 5. guest-access-service
+
+**Описание:** Управление гостевыми пропусками и учёт посещений.
 
 **Protocol**: HTTPS/REST  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path                 | Description              | Request Body                                                                                          | Response Body                                                 | Auth   |
-|--------|----------------------|--------------------------|-------------------------------------------------------------------------------------------------------|---------------------------------------------------------------|--------|
-| POST   | `/guest-passes`      | Request a guest pass     | `{ "hostUserId": UUID, "guestName": string, "guestEmail": string, "startTime": ISO, "endTime": ISO }` | `{ "id": UUID, "qrToken": string, "status": "pending", ... }` | Bearer |
-| GET    | `/guest-passes/{id}` | Get guest pass details   | —                                                                                                     | `{ "id": UUID, "status": string, "qrToken": string, ... }`    | Bearer |
-| PUT    | `/guest-passes/{id}` | Update guest pass status | `{ "status": string }`                                                                                | `{ "id": UUID, "status": string, ... }`                       | Bearer |
-| POST   | `/visit-logs`        | Log guest entry/exit     | `{ "guestPassId": UUID, "gateId": UUID, "event": "enter" \| "exit" }`                                 | `{ "id": UUID, "entryTime": ISO, "exitTime": ISO, ... }`      | Bearer |
+| Method | Path                 | Описание                       | Request Body                                                                                         | Response Body                                              | Auth   |
+|--------|----------------------|--------------------------------|------------------------------------------------------------------------------------------------------|------------------------------------------------------------|--------|
+| POST   | `/guest-passes`      | Запрос гостевого пропуска      | `{ "hostUserId": int, "guestName": string, "guestEmail": string, "startTime": ISO, "endTime": ISO }` | `{ "id": int, "qrToken": string, "status": "pending", … }` | Bearer |
+| GET    | `/guest-passes/{id}` | Детали гостевого пропуска      | —                                                                                                    | `{ "id": int, "guestName": string, "status": string, … }`  | Bearer |
+| PUT    | `/guest-passes/{id}` | Обновить статус пропуска       | `{ "status": string }`                                                                               | `{ "id": int, "status": string, … }`                       | Bearer |
+| POST   | `/visit-logs`        | Логирование входа/выхода гостя | `{ "guestPassId": int, "gateId": int, "event": "enter" \| "exit" }`                                  | `{ "id": int, "entryTime": ISO, "exitTime": ISO, … }`      | Bearer |
 
 ---
 
-## parking-service
+## 6. parking-service
+
+**Описание:** Управление парковочными местами, транспортными средствами и их бронированием.
 
 **Protocol**: HTTPS/REST  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path                         | Description                        | Request Body                                                                              | Response Body                                                        | Auth         |
-|--------|------------------------------|------------------------------------|-------------------------------------------------------------------------------------------|----------------------------------------------------------------------|--------------|
-| GET    | `/parking-spots`             | List all parking spots             | Query params: `?workspaceId=&status=&type=`                                               | `[ { "id": UUID, "spotNumber": number, "status": string, ... }, … ]` | Bearer       |
-| POST   | `/parking-spots`             | Create parking spot                | `{ "workspaceId": UUID, "spotNumber": number, "type": string }`                           | `{ "id": UUID, ... }`                                                | Bearer/Admin |
-| POST   | `/vehicles`                  | Register vehicle                   | `{ "userId": UUID, "plateNumber": string, "type": string }`                               | `{ "id": UUID, ... }`                                                | Bearer       |
-| GET    | `/parking-reservations`      | List reservations                  | Query params: `?userId=&spotId=&status=`                                                  | `[ { "id": UUID, "startTime": ISO, "endTime": ISO, ... }, … ]`       | Bearer       |
-| POST   | `/parking-reservations`      | Reserve a spot                     | `{ "userId": UUID, "vehicleId": UUID, "spotId": UUID, "startTime": ISO, "endTime": ISO }` | `{ "id": UUID, "status": "active", ... }`                            | Bearer       |
-| PUT    | `/parking-reservations/{id}` | Update reservation status or times | `{ "status": string }`                                                                    | `{ "id": UUID, "status": string, ... }`                              | Bearer       |
-| DELETE | `/parking-reservations/{id}` | Cancel reservation                 | —                                                                                         | *204 No Content*                                                     | Bearer       |
+| Method | Path                         | Описание                       | Request Body                                                                           | Response Body                                                     | Auth         |
+|--------|------------------------------|--------------------------------|----------------------------------------------------------------------------------------|-------------------------------------------------------------------|--------------|
+| GET    | `/parking-spots`             | Список мест на всех парковках  | Query params: `?workspaceId=&status=&type=`                                            | `[ { "id": int, "spotNumber": number, "status": string, … }, … ]` | Bearer       |
+| POST   | `/parking-spots`             | Добавить новое место           | `{ "workspaceId": int, "spotNumber": number, "type": string }`                         | `{ "id": int, "spotNumber": number, … }`                          | Bearer/Admin |
+| POST   | `/vehicles`                  | Зарегистрировать транспорт     | `{ "userId": int, "plateNumber": string, "type": string }`                             | `{ "id": int, "plateNumber": string, … }`                         | Bearer       |
+| GET    | `/parking-reservations`      | Список бронирований машиномест | Query params: `?userId=&spotId=&status=`                                               | `[ { "id": int, "startTime": ISO, "endTime": ISO, … }, … ]`       | Bearer       |
+| POST   | `/parking-reservations`      | Забронировать место            | `{ "userId": int, "vehicleId": int, "spotId": int, "startTime": ISO, "endTime": ISO }` | `{ "id": int, "status": "active", … }`                            | Bearer       |
+| PUT    | `/parking-reservations/{id}` | Обновить бронь                 | `{ "status"?: string, "startTime"?: ISO, "endTime"?: ISO }`                            | `{ "id": int, "status": string, … }`                              | Bearer       |
+| DELETE | `/parking-reservations/{id}` | Отменить бронь                 | —                                                                                      | *204 No Content*                                                  | Bearer       |
 
 ---
 
-## order-service
+## 7. order-service
+
+**Описание:** Заказ канцелярии, техники, еды и прочих дополнительных услуг.
 
 **Protocol**: HTTPS/REST + Kafka events  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path             | Description                      | Request Body                                                                                      | Response Body                                                     | Auth         |
-|--------|------------------|----------------------------------|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|--------------|
-| GET    | `/products`      | List all products                | Query params: `?status=&minStock=`                                                                | `[ { "id": UUID, "name": string, "unitPrice": number, ... }, … ]` | Bearer       |
-| POST   | `/products`      | Create a product                 | `{ "name": string, "unitPrice": number, "stockQty": number }`                                     | `{ "id": UUID, ... }`                                             | Bearer/Admin |
-| PUT    | `/products/{id}` | Update product                   | Partial product object                                                                            | `{ "id": UUID, ... }`                                             | Bearer/Admin |
-| DELETE | `/products/{id}` | Deactivate product (soft delete) | —                                                                                                 | *204 No Content*                                                  | Bearer/Admin |
-| GET    | `/orders`        | List orders                      | Query params: `?userId=&status=`                                                                  | `[ { "id": UUID, "totalAmount": number, ... }, … ]`               | Bearer       |
-| POST   | `/orders`        | Create an order                  | `{ "userId": UUID, "workspaceId": UUID, "items": [ { "productId": UUID, "quantity": number } ] }` | `{ "id": UUID, "totalAmount": number, "status": "new", ... }`     | Bearer       |
-| GET    | `/orders/{id}`   | Get order details                | —                                                                                                 | `{ "id": UUID, "items": [ … ], "status": string, ... }`           | Bearer       |
-| PUT    | `/orders/{id}`   | Update order status              | `{ "status": string }`                                                                            | `{ "id": UUID, "status": string, ... }`                           | Bearer       |
+| Method | Path             | Описание               | Request Body                                                                                   | Response Body                                                  | Auth         |
+|--------|------------------|------------------------|------------------------------------------------------------------------------------------------|----------------------------------------------------------------|--------------|
+| GET    | `/products`      | Список товаров         | Query params: `?status=&minStock=`                                                             | `[ { "id": int, "name": string, "unitPrice": number, … }, … ]` | Bearer       |
+| POST   | `/products`      | Добавить новый товар   | `{ "name": string, "unitPrice": number, "stockQty": number }`                                  | `{ "id": int, "name": string, … }`                             | Bearer/Admin |
+| PUT    | `/products/{id}` | Обновить данные товара | `{ "name"?: string, "unitPrice"?: number, "stockQty"?: number, "status"?: string }`            | `{ "id": int, "name": string, … }`                             | Bearer/Admin |
+| DELETE | `/products/{id}` | Деактивировать товар   | —                                                                                              | *204 No Content*                                               | Bearer/Admin |
+| GET    | `/orders`        | Список всех заказов    | Query params: `?userId=&status=`                                                               | `[ { "id": int, "totalAmount": number, … }, … ]`               | Bearer       |
+| POST   | `/orders`        | Создать заказ          | `{ "userId": int, "workspaceId": int, "items": [ { "productId": int, "quantity": number } ] }` | `{ "id": int, "totalAmount": number, "status": "new", … }`     | Bearer       |
+| GET    | `/orders/{id}`   | Детали заказа по ID    | —                                                                                              | `{ "id": int, "items":[…], "status": string, … }`              | Bearer       |
+| PUT    | `/orders/{id}`   | Обновить статус заказа | `{ "status": string }`                                                                         | `{ "id": int, "status": string, … }`                           | Bearer       |
 
 > **Kafka topics**
 > - `order.created`
@@ -146,115 +170,125 @@
 
 ---
 
-## support-service
+## 8. support-service
 
-**Protocol**: HTTPS/REST + WebSocket (real-time chat)  
+**Описание:** Тикетная система и real-time чат поддержки пользователей и администраторов.
+
+**Protocol**: HTTPS/REST + WebSocket  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path                     | Description                   | Request Body                                                   | Response Body                                      | Auth           |
-|--------|--------------------------|-------------------------------|----------------------------------------------------------------|----------------------------------------------------|----------------|
-| GET    | `/tickets`               | List support tickets          | Query params: `?userId=&status=&priority=`                     | `[ { "id": UUID, "subject": string, ... }, … ]`    | Bearer         |
-| POST   | `/tickets`               | Open new ticket               | `{ "userId": UUID, "subject": string, "description": string }` | `{ "id": UUID, "status": "open", ... }`            | Bearer         |
-| GET    | `/tickets/{id}`          | Get ticket by ID              | —                                                              | `{ "id": UUID, "messages": [ … ], ... }`           | Bearer         |
-| POST   | `/tickets/{id}/messages` | Add message to ticket         | `{ "senderId": UUID, "text": string }`                         | `{ "id": UUID, "text": string, "createdAt": ISO }` | Bearer         |
-| PUT    | `/tickets/{id}`          | Update ticket status/priority | `{ "status": string, "priority": string }`                     | `{ "id": UUID, "status": string, ... }`            | Bearer/Support |
+| Method | Path                     | Описание                         | Request Body                                                  | Response Body                                        | Auth           |
+|--------|--------------------------|----------------------------------|---------------------------------------------------------------|------------------------------------------------------|----------------|
+| GET    | `/tickets`               | Список тикетов                   | Query params: `?userId=&status=&priority=`                    | `[ { "id": int, "subject": string, … }, … ]`         | Bearer         |
+| POST   | `/tickets`               | Открыть новый тикет              | `{ "userId": int, "subject": string, "description": string }` | `{ "id": int, "status": "open", … }`                 | Bearer         |
+| GET    | `/tickets/{id}`          | Получить тикет по ID             | —                                                             | `{ "id": int, "messages":[…], "status": string, … }` | Bearer         |
+| POST   | `/tickets/{id}/messages` | Добавить сообщение в тикет       | `{ "senderId": int, "text": string }`                         | `{ "id": int, "text": string, "createdAt": ISO, … }` | Bearer         |
+| PUT    | `/tickets/{id}`          | Обновить статус/приоритет тикета | `{ "status"?: string, "priority"?: string }`                  | `{ "id": int, "status": string, … }`                 | Bearer/Support |
 
-> **WebSocket**: `/ws/support/{ticketId}` for real-time chat
+> **WebSocket**: `wss://…/ws/support/{ticketId}` для real-time чата
 
 ---
 
-## security-service
+## 9. security-service
 
-**Protocol**: HTTPS/REST + MQTT (IoT gates)  
+**Описание:** СКУД: учёт устройств, событий доступа, генерация оповещений и интеграция с IoT-гейтами.
+
+**Protocol**: HTTPS/REST + MQTT  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path             | Description            | Request Body                                                      | Response Body                                                  | Auth                 |
-|--------|------------------|------------------------|-------------------------------------------------------------------|----------------------------------------------------------------|----------------------|
-| GET    | `/gates`         | List all access gates  | —                                                                 | `[ { "id": UUID, "location": string, ... }, … ]`               | Bearer               |
-| POST   | `/gates`         | Register a new gate    | `{ "location": string, "type": string }`                          | `{ "id": UUID, ... }`                                          | Bearer/Admin         |
-| GET    | `/access-events` | List raw access events | Query params: `?gateId=&from=&to=`                                | `[ { "id": UUID, "gateId": UUID, "timestamp": ISO, ... }, … ]` | Bearer               |
-| POST   | `/access-events` | Push event from gate   | `{ "gateId": UUID, "passId": UUID, "action": "enter" \| "exit" }` | `{ "id": UUID, "timestamp": ISO, ... }`                        | Bearer / MQTT client |
+| Method | Path             | Описание                      | Request Body                                                    | Response Body                                              | Auth          |
+|--------|------------------|-------------------------------|-----------------------------------------------------------------|------------------------------------------------------------|---------------|
+| GET    | `/gates`         | Список всех контрольных точек | —                                                               | `[ { "id": int, "location": string, … }, … ]`              | Bearer        |
+| POST   | `/gates`         | Зарегистрировать новую точку  | `{ "location": string, "type": string }`                        | `{ "id": int, "location": string, … }`                     | Bearer/Admin  |
+| GET    | `/access-events` | Сырые события доступа         | Query params: `?gateId=&from=&to=`                              | `[ { "id": int, "gateId": int, "timestamp": ISO, … }, … ]` | Bearer        |
+| POST   | `/access-events` | Запись события от IoT-гейта   | `{ "gateId": int, "passId": int, "action": "enter" \| "exit" }` | `{ "id": int, "timestamp": ISO, … }`                       | Bearer / MQTT |
 
 > **MQTT topic**: `security/gates/{gateId}/events`
 
 ---
 
-## hr-service
+## 10. hr-service
+
+**Описание:** Учёт сотрудников, отделов и их графиков смен.
 
 **Protocol**: HTTPS/REST  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path              | Description          | Request Body                                          | Response Body                                                 | Auth      |
-|--------|-------------------|----------------------|-------------------------------------------------------|---------------------------------------------------------------|-----------|
-| GET    | `/employees`      | List employees       | —                                                     | `[ { "id": UUID, "name": string, "department": string }, … ]` | Bearer/HR |
-| POST   | `/employees`      | Add new employee     | `{ "name": string, "email": string, "deptId": UUID }` | `{ "id": UUID, ... }`                                         | Bearer/HR |
-| PUT    | `/employees/{id}` | Update employee data | Partial employee object                               | `{ "id": UUID, ... }`                                         | Bearer/HR |
-| DELETE | `/employees/{id}` | Remove employee      | —                                                     | *204 No Content*                                              | Bearer/HR |
-| GET    | `/departments`    | List departments     | —                                                     | `[ { "id": UUID, "name": string }, … ]`                       | Bearer/HR |
-| POST   | `/departments`    | Create department    | `{ "name": string }`                                  | `{ "id": UUID, ... }`                                         | Bearer/HR |
+| Method | Path              | Описание                   | Request Body                                                  | Response Body                                                 | Auth      |
+|--------|-------------------|----------------------------|---------------------------------------------------------------|---------------------------------------------------------------|-----------|
+| GET    | `/employees`      | Список сотрудников         | —                                                             | `[ { "id": int, "name": string, "position": string, … }, … ]` | Bearer/HR |
+| POST   | `/employees`      | Добавить сотрудника        | `{ "name": string, "email": string, "department": string }`   | `{ "id": int, "name": string, … }`                            | Bearer/HR |
+| PUT    | `/employees/{id}` | Обновить данные сотрудника | `{ "name"?: string, "position"?: string, "status"?: string }` | `{ "id": int, "name": string, … }`                            | Bearer/HR |
+| DELETE | `/employees/{id}` | Удалить сотрудника         | —                                                             | *204 No Content*                                              | Bearer/HR |
+| GET    | `/departments`    | Список отделов             | —                                                             | `[ { "id": int, "name": string }, … ]`                        | Bearer/HR |
+| POST   | `/departments`    | Создать отдел              | `{ "name": string }`                                          | `{ "id": int, "name": string }`                               | Bearer/HR |
 
 ---
 
-## analytics-service
+## 11. analytics-service
 
-**Protocol**: HTTPS/REST + WebSocket (dashboards)  
+**Описание:** Сбор и агрегация метрик, построение отчётов и дашбордов.
+
+**Protocol**: HTTPS/REST + WebSocket  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path                            | Description                        | Request Body                            | Response Body                                                                  | Auth         |
-|--------|---------------------------------|------------------------------------|-----------------------------------------|--------------------------------------------------------------------------------|--------------|
-| GET    | `/metrics`                      | Fetch system metrics (time-series) | Query params: `?metric=&from=&to=`      | `{ "metric": string, "points": [ { "timestamp": ISO, "value": number }, … ] }` | Bearer/Admin |
-| GET    | `/reports/sales`                | Generate sales report              | Query params: `?from=&to=&workspaceId=` | `{ "totalSales": number, "byDay": [ … ] }`                                     | Bearer/Admin |
-| GET    | `/reports/resource-utilization` | Resource usage over time           | Query params: `?resourceId=&from=&to=`  | `{ "utilization": [ … ] }`                                                     | Bearer/Admin |
-| WS     | `/ws/analytics`                 | Push live metric updates           | —                                       | live JSON messages                                                             | Bearer/Admin |
+| Method | Path                            | Описание                          | Request Body                            | Response Body                                                                 | Auth         |
+|--------|---------------------------------|-----------------------------------|-----------------------------------------|-------------------------------------------------------------------------------|--------------|
+| GET    | `/metrics`                      | Временные ряды метрик             | Query params: `?metric=&from=&to=`      | `{ "metric": string, "points":[ { "timestamp": ISO, "value": number }, … ] }` | Bearer/Admin |
+| GET    | `/reports/sales`                | Отчёт по продажам                 | Query params: `?from=&to=&workspaceId=` | `{ "totalSales": number, "byDay":[ … ] }`                                     | Bearer/Admin |
+| GET    | `/reports/resource-utilization` | Использование ресурсов по времени | Query params: `?resourceId=&from=&to=`  | `{ "utilization":[ … ] }`                                                     | Bearer/Admin |
+| WS     | `/ws/analytics`                 | Live-обновления метрик            | —                                       | WebSocket-сообщения с JSON-payload                                            | Bearer/Admin |
 
 ---
 
-## notification-service
+## 12. notification-service
 
-**Protocol**: HTTPS/REST + WebSocket (push)  
+**Описание:** Управление шаблонами уведомлений и доставка push/email/SMS/ин-апп уведомлений.
+
+**Protocol**: HTTPS/REST + WebSocket  
 **Content-Type**: `application/json`
 
 ### Endpoints
 
-| Method | Path                         | Description                  | Request Body                                            | Response Body                                                   | Auth   |
-|--------|------------------------------|------------------------------|---------------------------------------------------------|-----------------------------------------------------------------|--------|
-| GET    | `/notifications`             | List user notifications      | Query params: `?userId=&status=`                        | `[ { "id": UUID, "type": string, "message": string, ... }, … ]` | Bearer |
-| POST   | `/notifications`             | Create/send notification     | `{ "userId": UUID, "type": string, "payload": object }` | `{ "id": UUID, ... }`                                           | Bearer |
-| PUT    | `/notifications/{id}`        | Mark notification read       | `{ "status": "read" }`                                  | `{ "id": UUID, "status": "read" }`                              | Bearer |
-| WS     | `/ws/notifications/{userId}` | Push real-time notifications | —                                                       | live JSON messages                                              | Bearer |
+| Method | Path                         | Описание                        | Request Body                                                        | Response Body                                                        | Auth   |
+|--------|------------------------------|---------------------------------|---------------------------------------------------------------------|----------------------------------------------------------------------|--------|
+| GET    | `/templates`                 | Список шаблонов                 | —                                                                   | `[ { "id": int, "name": string, "channel": string, … }, … ]`         | Bearer |
+| POST   | `/templates`                 | Создать шаблон                  | `{ "name": string, "channel": string, "body": string }`             | `{ "id": int, "name": string, … }`                                   | Bearer |
+| PUT    | `/templates/{id}`            | Обновить шаблон                 | `{ "name"?: string, "body"?: string }`                              | `{ "id": int, "name": string, … }`                                   | Bearer |
+| DELETE | `/templates/{id}`            | Удалить шаблон                  | —                                                                   | *204 No Content*                                                     | Bearer |
+| GET    | `/notifications`             | Список уведомлений пользователя | Query params: `?userId=&status=`                                    | `[ { "id": int, "recipientName": string, "status": string, … }, … ]` | Bearer |
+| POST   | `/notifications`             | Отправить уведомление           | `{ "templateId": int, "recipientName": string, "payload": object }` | `{ "id": int, "status": string, … }`                                 | Bearer |
+| PUT    | `/notifications/{id}`        | Пометить как прочитанное        | `{ "status": "read" }`                                              | `{ "id": int, "status": "read" }`                                    | Bearer |
+| WS     | `/ws/notifications/{userId}` | Live-push уведомления           | —                                                                   | WebSocket-сообщения с JSON                                           | Bearer |
 
 ---
 
-## api-gateway / BFF
+## 13. api-gateway / BFF
 
-**Protocol**: HTTPS/REST (aggregator)  
+**Описание:** Единая точка входа для всех клиентов; маршрутизация, аутентификация, агрегация ответов и генерация сводной
+OpenAPI-документации.
+
+**Protocol**: HTTPS/REST  
 **Content-Type**: `application/json`
 
 ### Features
 
-- **Routing**
-    - All incoming `/api/{service}/{...}` proxies to the corresponding microservice.
-- **Aggregation**
-    - Combines data from multiple services into one response (e.g. user dashboard).
-- **Authentication**
-    - Validates JWT issued by `auth-service`, injects `userId` into downstream calls.
-- **Rate Limiting & Caching**
-    - Implements per-user rate limits, caches read-heavy endpoints.
-- **Swagger/OpenAPI**
-    - Consolidated API spec at `/api/docs`.
+- **Routing**: `/api/{service}/{resource}` → соответствующий микросервис.
+- **Authentication**: проверка JWT (auth-service), проксирование `userId` в заголовках.
+- **Aggregation**: комбинирует ответы нескольких сервисов (например, `/api/dashboard`).
+- **Rate Limiting & Caching**: per-user лимиты и кэширование часто запрашиваемых GET.
+- **Swagger / OpenAPI**: единый спек под `/api/docs`.
 
-### Example Aggregation Endpoint
+### Example Aggregation
 
-| Method | Path             | Description                        | Response Body                                                               | Auth   |
-|--------|------------------|------------------------------------|-----------------------------------------------------------------------------|--------|
-| GET    | `/api/dashboard` | User’s workspace dashboard summary | `{ "reservations": [...], "invoices": [...], "notifications": [...], ... }` | Bearer |
-
----
+| Method | Path             | Описание                        | Response Body                                                       | Auth   |
+|--------|------------------|---------------------------------|---------------------------------------------------------------------|--------|
+| GET    | `/api/dashboard` | Сводная информация пользователя | `{ "reservations": […], "invoices": […], "notifications": […], … }` | Bearer |
